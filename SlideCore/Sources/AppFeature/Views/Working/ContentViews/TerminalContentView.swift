@@ -51,7 +51,10 @@ final class TerminalProcessDelegate: LocalProcessTerminalViewDelegate {
 /// `keyDown` is `public` (not `open`) in SwiftTerm so we cannot override it, but
 /// `insertText` is `open` and is the final text-delivery path from `interpretKeyEvents`.
 final class SlideTerminalView: LocalProcessTerminalView {
-    override var focusRingType: NSFocusRingType { .none }
+    override var focusRingType: NSFocusRingType {
+        get { .none }
+        set { }
+    }
 
     /// Track whether the current insertText call originated from a paste operation
     /// so we can still wrap it in bracketed-paste sequences.

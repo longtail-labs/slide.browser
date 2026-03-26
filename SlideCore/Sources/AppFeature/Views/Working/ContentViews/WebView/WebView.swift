@@ -13,7 +13,10 @@ import AppKit
 // MARK: - Custom context menu support (macOS)
 @available(macOS 11.0, *)
 final class ContextMenuWebView: WKWebView {
-    override var focusRingType: NSFocusRingType { .none }
+    override var focusRingType: NSFocusRingType {
+        get { .none }
+        set { }
+    }
 
     enum ContextualMenuAction {
         case summarizeTarget
