@@ -1,0 +1,18 @@
+# Local signing configuration for Conveyor
+# Copy to conveyor.sign.conf and fill in your credentials
+
+include required("conveyor.conf")
+
+app {
+    signing-key = "YOUR_CONVEYOR_SIGNING_KEY"
+
+    mac.certificate = developerID_application.cer
+
+    mac.notarization {
+        team-id = 78UAXU8QG8
+        app-specific-password = YOUR_APP_SPECIFIC_PASSWORD
+        apple-id = "jordan@howlett.io"
+    }
+
+    mac.deltas = 5
+}

@@ -1,0 +1,190 @@
+# name: macOS Beta Nightly Build
+
+# on:
+#   # Run nightly at 3 AM UTC
+#   # Allow manual triggering
+#   workflow_dispatch:
+
+# jobs:
+#   check-changes:
+#     runs-on: ubuntu-latest
+#     outputs:
+#       should_run: ${{ steps.should_run.outputs.should_run }}
+#     steps:
+#       - name: Checkout Repository
+#         uses: actions/checkout@v4
+#         with:
+#           fetch-depth: 0
+
+#       - name: Check if should run
+#         id: should_run
+#         run: |
+#           # Check if there are commits in the last 24 hours
+#           if [ "${{ github.event_name }}" = "schedule" ]; then
+#             if test -z "$(git rev-list --after='24 hours' HEAD)"; then
+#               echo "No commits in the last 24 hours, skipping build"
+#               echo "should_run=false" >> $GITHUB_OUTPUT
+#             else
+#               echo "Recent commits found, proceeding with build"
+#               echo "should_run=true" >> $GITHUB_OUTPUT
+#             fi
+#           else
+#             echo "Manual trigger or push event, proceeding with build"
+#             echo "should_run=true" >> $GITHUB_OUTPUT
+#           fi
+
+#   generate-version:
+#     runs-on: ubuntu-latest
+#     needs: check-changes
+#     if: ${{ needs.check-changes.outputs.should_run != 'false' }}
+#     outputs:
+#       beta_version: ${{ steps.set-version.outputs.beta_version }}
+#     steps:
+#       - name: Checkout Repository
+#         uses: actions/checkout@v4
+
+#       - name: Generate beta version
+#         run: |
+#           # Use a simple version for beta builds
+#           BETA_VERSION="0.1.0"
+#           echo "Beta version: $BETA_VERSION"
+#           echo "beta_version=${BETA_VERSION}" >> $GITHUB_OUTPUT
+#         id: set-version
+
+#   build-macos:
+#     name: Build macOS App
+#     runs-on: macos-latest
+#     needs: [generate-version, check-changes]
+#     if: ${{ needs.check-changes.outputs.should_run != 'false' }}
+#     outputs:
+#       beta_version: ${{ needs.generate-version.outputs.beta_version }}
+
+#     steps:
+#       - name: Checkout Repository
+#         uses: actions/checkout@v4
+#         with:
+#           fetch-depth: 0
+
+#       - name: Setup Xcode
+#         uses: maxim-lobanov/setup-xcode@v1
+#         with:
+#           xcode-version: latest-stable
+
+#       - name: Setup Code Signing
+#         run: |
+#           # Create P12 certificate file from GitHub secret
+#           echo "${{ secrets.APPLE_CERT_P12 }}" | base64 --decode > apple.p12
+
+#           # Install certificate in keychain for Xcode development signing
+#           security create-keychain -p "" build.keychain
+#           security default-keychain -s build.keychain
+#           security unlock-keychain -p "" build.keychain
+#           security import apple.p12 -k build.keychain -P "${{ secrets.APPLE_CERT_PASSWORD }}" -T /usr/bin/codesign
+#           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain
+
+#       - name: Update version in Xcode project
+#         run: |
+#           # Update the version in the Xcode project
+#           BETA_VERSION="${{ needs.generate-version.outputs.beta_version }}"
+#           cd Slide/Slide
+#           xcrun agvtool new-marketing-version "$BETA_VERSION"
+#           xcrun agvtool new-version -all "$BETA_VERSION"
+
+#       - name: Debug Package Configuration
+#         if: failure() || runner.debug == '1'
+#         run: |
+#           ./debug-packages.sh
+
+#       - name: Build macOS App
+#         run: |
+#           # The CI build script handles everything including package resolution
+#           ./build-ci.sh --version "${{ needs.generate-version.outputs.beta_version }}"
+
+#       - name: Upload Built App
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: macos-app-bundle
+#           path: build/Build/Products/Release/Slide.app
+#           retention-days: 1
+#           compression-level: 0 # No compression for faster upload
+
+#   package-with-conveyor:
+#     name: Package with Conveyor
+#     runs-on: ubuntu-latest
+#     needs: [build-macos, generate-version]
+#     permissions:
+#       contents: write
+#       pages: write
+#       id-token: write
+
+#     steps:
+#       - name: Checkout Repository
+#         uses: actions/checkout@v4
+#         with:
+#           fetch-depth: 0
+
+#       - name: Download Built App
+#         uses: actions/download-artifact@v4
+#         with:
+#           name: macos-app-bundle
+#           path: build/Build/Products/Release/Slide.app
+
+#       # - name: Prepare Signing Files
+#       #   run: |
+#       #     # Create P12 certificate file from GitHub secret for Conveyor
+#       #     echo "${{ secrets.APPLE_CERT_P12 }}" | base64 --decode > apple.p12
+
+#       - name: Run Conveyor for Beta Build
+#         uses: hydraulic-software/conveyor/actions/build@v19.0
+#         env:
+#           SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+#           SITE_RELEASE_TOKEN: ${{ secrets.SITE_RELEASE_TOKEN }}
+#           BUILD_VERSION: ${{ needs.generate-version.outputs.beta_version }}
+#           MODE: beta
+#           APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+#         with:
+#           command: make copied-site
+#           signing_key: ${{ secrets.SIGNING_KEY }}
+#           extra_flags: -f conveyor.sign.conf
+#           agree_to_license: 1
+
+#       # - name: Upload Beta Artifacts
+#       #   uses: actions/upload-artifact@v4
+#       #   with:
+#       #     name: slide-beta-${{ needs.generate-version.outputs.beta_version }}
+#       #     path: |
+#       #       output/*.dmg
+#       #       output/*.zip
+#       #       output/download.html
+#       #     retention-days: 30
+#       #     compression-level: 0 # No compression for binaries
+
+#       # - name: Create Beta Release
+#       #   uses: softprops/action-gh-release@v1
+#       #   with:
+#       #     tag_name: beta-${{ needs.generate-version.outputs.beta_version }}
+#       #     name: Beta Build ${{ needs.generate-version.outputs.beta_version }}
+#       #     prerelease: true
+#       #     files: |
+#       #       output/*.dmg
+#       #       output/*.zip
+#       #     body: |
+#       #       ## 🚀 Beta Build ${{ needs.generate-version.outputs.beta_version }}
+
+#       #       **⚠️ This is a beta build and may contain bugs.**
+
+#       #       ### Installation
+#       #       - [Download for Intel Mac](https://longtail-labs.github.io/slide-beta/download.html)
+#       #       - [Download for Apple Silicon Mac](https://longtail-labs.github.io/slide-beta/download.html)
+
+#       #       ### Build Information
+#       #       - Version: `${{ needs.generate-version.outputs.beta_version }}`
+#       #       - Commit: ${{ github.sha }}
+#       #       - Branch: ${{ github.ref_name }}
+#       #       - Build Date: ${{ github.event.head_commit.timestamp }}
+
+#       #       ### Recent Changes
+#       #       ${{ github.event.head_commit.message }}
+
+#       #       ---
+#       #       *This beta build expires in 30 days*
