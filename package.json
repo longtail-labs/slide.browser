@@ -1,7 +1,0 @@
-{
-	"private": true,
-	"scripts": {
-		"commit": "bun ./scripts/commit.ts",
-		"release": "bun ./scripts/release.ts"
-	}
-}
