@@ -10,6 +10,7 @@ public final class CommandServerBridge {
     private let router: CommandRouter
     private var dispatch: ((CLICommand) -> Void)?
     private var stateProvider: (() -> (objects: [TaskObject], projects: [OBXProject], activeProjectId: UUID?))?
+    private var createProjectHandler: ((String, String, String) async throws -> OBXProject)?
 
     public init() {
         // Router delegates to self via captured closure
@@ -31,10 +32,12 @@ public final class CommandServerBridge {
     ///   - stateProvider: Returns current state for query methods
     public func start(
         dispatch: @escaping (CLICommand) -> Void,
-        stateProvider: @escaping () -> (objects: [TaskObject], projects: [OBXProject], activeProjectId: UUID?)
+        stateProvider: @escaping () -> (objects: [TaskObject], projects: [OBXProject], activeProjectId: UUID?),
+        createProjectHandler: @escaping (String, String, String) async throws -> OBXProject
     ) {
         self.dispatch = dispatch
         self.stateProvider = stateProvider
+        self.createProjectHandler = createProjectHandler
 
         let router = self.router
         do {
@@ -167,6 +170,18 @@ public final class CommandServerBridge {
                     SlideResults.ProjectInfo(id: $0.uuid, name: $0.name, icon: $0.icon)
                 }
                 return .success(infos, id: request.id)
+
+            case .projectCreate:
+                let params = try request.requireParams(SlideParams.ProjectCreate.self)
+                guard let handler = createProjectHandler else {
+                    return .error(-32603, "Create project handler not configured", id: request.id)
+                }
+                let project = try await handler(params.name, params.icon ?? "📁", params.color ?? "#6B7280")
+                dispatch?(.projectSelect(id: project.uuidValue))
+                let result = SlideResults.ProjectCreateResult(
+                    id: project.uuid, name: project.name, icon: project.icon
+                )
+                return .success(result, id: request.id)
 
             case .projectBadge:
                 // Project badge is visual-only, handled via object aggregation

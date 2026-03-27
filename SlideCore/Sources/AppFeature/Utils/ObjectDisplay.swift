@@ -5,11 +5,9 @@ import Foundation
 
 extension TaskObject {
     public var displayTitle: String {
-        let base = payload.displayTitle
-        if base.isEmpty {
-            return kindSubtitle
-        }
-        return base
+        if !customName.isEmpty { return customName }
+        if !displayName.isEmpty { return displayName }
+        return payload.kindSubtitle
     }
 
     public var kindEmoji: String { payload.kindEmoji }

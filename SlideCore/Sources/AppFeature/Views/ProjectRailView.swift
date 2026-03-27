@@ -51,6 +51,9 @@ struct ProjectRailView: View {
         }
         .frame(width: railWidth)
         .background(Color(NSColor.windowBackgroundColor).opacity(0.5))
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("ShowCreateProject"))) { _ in
+            showCreateSheet = true
+        }
         .sheet(isPresented: $showCreateSheet) {
             ProjectSheet(store: store, isPresented: $showCreateSheet)
         }
@@ -83,6 +86,11 @@ struct ProjectRailView: View {
         .onTapGesture { store.send(.selectProject(scratchpad.uuidValue)) }
         .onHover { hoveredProjectId = $0 ? scratchpad.uuidValue : nil }
         .help("All Objects")
+        .contextMenu {
+            Button("Clear All Objects", role: .destructive) {
+                store.send(.clearProjectObjects(scratchpad.uuidValue))
+            }
+        }
         .dropDestination(for: String.self) { items, _ in
             guard let uuid = items.first.flatMap(UUID.init(uuidString:)),
                   let spUUID = UUID(uuidString: scratchpadProjectUUID) else { return false }
@@ -121,6 +129,9 @@ struct ProjectRailView: View {
                 editingProject = project
             }
             Divider()
+            Button("Clear All Objects", role: .destructive) {
+                store.send(.clearProjectObjects(project.uuidValue))
+            }
             Button("Delete", role: .destructive) {
                 store.send(.deleteProject(project.uuidValue))
             }
@@ -292,6 +303,7 @@ private struct ProjectSheet: View {
     @Binding var isPresented: Bool
     var editing: OBXProject? = nil
 
+    @FocusState private var isNameFocused: Bool
     @State private var name = ""
     @State private var selectedEmoji = "📁"
     @State private var selectedColor: Color = .indigo
@@ -338,6 +350,7 @@ private struct ProjectSheet: View {
                         TextField("Project name", text: $name)
                             .textFieldStyle(.roundedBorder)
                             .font(.system(size: 13))
+                            .focused($isNameFocused)
                             .onSubmit { submit() }
 
                         HStack(spacing: 8) {
@@ -416,6 +429,7 @@ private struct ProjectSheet: View {
                 selectedEmoji = project.icon
                 selectedColor = Color(hex: project.colorHex) ?? .indigo
             }
+            isNameFocused = true
         }
     }
 

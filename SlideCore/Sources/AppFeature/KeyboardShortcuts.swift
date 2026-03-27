@@ -4,6 +4,14 @@ import AppKit
 
 // MARK: - Centralized Keyboard Shortcuts
 
+#if DEBUG
+private func debugKeyboardShortcut(_ message: String) {
+    print("[KeyboardShortcut] \(message)")
+}
+#else
+private func debugKeyboardShortcut(_ message: String) {}
+#endif
+
 public extension View {
     /// Attaches global and context-specific keyboard shortcuts for the content browser.
     func appKeyboardShortcuts(store: StoreOf<SlideAppFeature>) -> some View {
@@ -120,13 +128,18 @@ public extension View {
                 }
                 return .ignored
             }
-            // New Note (⌘N)
-            .onKeyPress(keys: [.init("n")], phases: .down) { keyPress in
-                if store.commandPalette == nil,
-                   keyPress.modifiers.contains(.command) && !keyPress.modifiers.contains(.shift) {
-                    store.send(.createNewNote)
+            // New Project (⌘N)
+            .onKeyPress(keys: [.init("n"), .init("N")], phases: .down) { keyPress in
+                guard store.commandPalette == nil, keyPress.modifiers.contains(.command) else {
+                    return .ignored
+                }
+
+                if !keyPress.modifiers.contains(.shift) {
+                    debugKeyboardShortcut("SwiftUI handled Cmd-N -> new project")
+                    NotificationCenter.default.post(name: Notification.Name("ShowCreateProject"), object: nil)
                     return .handled
                 }
+
                 return .ignored
             }
             // Close focused panel (⌘W)
@@ -318,6 +331,17 @@ private struct BrowserKeyboardMonitor: ViewModifier {
             if event.modifierFlags.contains(.command) && !event.modifierFlags.contains(.shift) {
                 if event.charactersIgnoringModifiers?.lowercased() == "l" {
                     store.send(.openCommandBarForCurrentObject)
+                    return nil
+                }
+            }
+
+            let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+
+            // Handle ⌘N for new project
+            if event.charactersIgnoringModifiers?.lowercased() == "n" {
+                if modifiers.contains(.command) && !modifiers.contains(.shift) {
+                    debugKeyboardShortcut("AppKit monitor handled Cmd-N -> new project")
+                    NotificationCenter.default.post(name: Notification.Name("ShowCreateProject"), object: nil)
                     return nil
                 }
             }

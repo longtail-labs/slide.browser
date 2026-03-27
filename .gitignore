@@ -184,3 +184,4 @@ conveyor.sign.conf
 conveyor.local.conf
 developerId_application.cer
 .archive
+GoogleService-Info.plist

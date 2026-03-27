@@ -34,8 +34,8 @@ let package = Package(
         .package(url: "https://github.com/onevcat/Kingfisher.git", from: "8.8.0"),
         // STTextView for native markdown editor
         .package(url: "https://github.com/krzyzanowskim/STTextView.git", from: "2.3.6"),
-        // Terminal emulator
-        .package(url: "https://github.com/migueldeicaza/SwiftTerm.git", from: "1.12.0"),
+        // Ghostty terminal renderer spike
+        .package(url: "https://github.com/Lakr233/libghostty-spm.git", from: "1.0.0"),
         // Emoji picker
         .package(url: "https://github.com/danielsaidi/EmojiKit.git", from: "2.3.0"),
         // CLI argument parsing
@@ -119,7 +119,7 @@ let package = Package(
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
                 .product(name: "Dependencies", package: "swift-dependencies"),
                 .product(name: "Sharing", package: "swift-sharing"),
-                .product(name: "SwiftTerm", package: "SwiftTerm"),
+                .product(name: "GhosttyTerminal", package: "libghostty-spm"),
                 .product(name: "EmojiKit", package: "EmojiKit"),
             ],
             path: "Sources/AppFeature",

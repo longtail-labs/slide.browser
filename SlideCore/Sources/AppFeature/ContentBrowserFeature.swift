@@ -132,6 +132,7 @@ public struct ContentBrowserFeature {
         case deleteProject(UUID)
         case updateProject(OBXProject)
         case reorderProjects([UUID])
+        case clearProjectObjects(UUID)
         case moveObjectToProject(UUID, UUID?)
 
         // Object CRUD
@@ -428,6 +429,29 @@ public struct ContentBrowserFeature {
                     try? await database.deleteProject(id)
                 }
 
+            case .clearProjectObjects(let projectId):
+                let objectIds = state.objects
+                    .filter { $0.projectId == projectId }
+                    .map { $0.uuidValue }
+                guard !objectIds.isEmpty else { return .none }
+                for id in objectIds {
+                    state.pendingDeletions.insert(id)
+                    state.objects.removeAll { $0.uuidValue == id }
+                    state.visiblePanelIds.removeAll { $0 == id }
+                }
+                if state.visiblePanelIds.isEmpty {
+                    state.focusedPanelIndex = 0
+                } else {
+                    state.focusedPanelIndex = min(state.focusedPanelIndex, state.visiblePanelIds.count - 1)
+                }
+                savePanelsEffect(&state)
+                return .run { send in
+                    for id in objectIds {
+                        try? await database.deleteObject(id)
+                        await send(.deletionCompleted(id))
+                    }
+                }
+
             case .updateProject(let project):
                 return .run { _ in
                     try? await database.updateProject(project)
@@ -595,8 +619,21 @@ public struct ContentBrowserFeature {
             case .autoRenameObject(let id, let newTitle):
                 // System-initiated rename (OSC/webview) → only updates if no customName
                 if let idx = state.objects.firstIndex(where: { $0.uuidValue == id }) {
-                    guard state.objects[idx].customName.isEmpty else { return .none }
-                    guard state.objects[idx].title != newTitle else { return .none }
+                    if !state.objects[idx].customName.isEmpty {
+                        #if DEBUG
+                        print("[TerminalTitle] Ignored auto-rename for \(id) because customName is set to '\(state.objects[idx].customName)'")
+                        #endif
+                        return .none
+                    }
+                    if state.objects[idx].title == newTitle {
+                        #if DEBUG
+                        print("[TerminalTitle] Ignored auto-rename for \(id) because title is already '\(newTitle)'")
+                        #endif
+                        return .none
+                    }
+                    #if DEBUG
+                    print("[TerminalTitle] Applying auto-rename for \(id) -> '\(newTitle)'")
+                    #endif
                     state.objects[idx].title = newTitle
                     let obj = state.objects[idx]
                     return .run { _ in

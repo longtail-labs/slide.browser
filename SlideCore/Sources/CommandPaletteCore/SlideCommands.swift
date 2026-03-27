@@ -58,12 +58,22 @@ public enum SlideCommands {
 
     // MARK: - Create Commands
 
+    public static let createProject = CommandDefinition(
+        id: .init("create-project"),
+        title: "New Project",
+        keywords: ["new", "create", "project", "add", "folder"],
+        icon: "folder.badge.plus",
+        shortcut: "⌘N",
+        activation: { _, scope in scope == .cmdK },
+        entry: .direct(effect: .custom("create.project"))
+    )
+
     public static let createNote = CommandDefinition(
         id: .init("create-note"),
         title: "New Note",
         keywords: ["new", "create", "note", "add"],
         icon: "note.text.badge.plus",
-        shortcut: "⌘N",
+        shortcut: "⇧⌘N",
         activation: { _, scope in scope == .cmdK },
         entry: .direct(effect: .custom("create.note"))
     )
@@ -217,6 +227,7 @@ public enum SlideCommands {
             findOnPage,
 
             // Create
+            createProject,
             createNote,
             createTerminal,
 

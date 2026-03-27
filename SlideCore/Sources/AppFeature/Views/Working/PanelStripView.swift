@@ -148,8 +148,11 @@ private struct PanelContainer: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Panel header bar
+            // Panel header bar — tap gesture scoped here so terminal/web
+            // content can receive mouse events for text selection, etc.
             panelHeader
+                .contentShape(Rectangle())
+                .onTapGesture { onFocus() }
 
             Divider()
 
@@ -182,8 +185,6 @@ private struct PanelContainer: View {
                 .frame(maxHeight: .infinity),
             alignment: .trailing
         )
-        .contentShape(Rectangle())
-        .onTapGesture { onFocus() }
     }
 
     private var panelHeader: some View {

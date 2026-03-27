@@ -20,6 +20,7 @@ public enum SlideMethod: String, Codable, Sendable {
     case projectList      = "project.list"
     case projectSelect    = "project.select"
     case projectBadge     = "project.badge"
+    case projectCreate    = "project.create"
 
     // Notifications
     case notify
@@ -60,6 +61,12 @@ public enum SlideParams {
     public struct ProjectBadge: Codable, Sendable {
         public let id: String
         public let count: Int
+    }
+
+    public struct ProjectCreate: Codable, Sendable {
+        public let name: String
+        public var icon: String?
+        public var color: String?
     }
 
     public struct Notify: Codable, Sendable {
@@ -141,6 +148,20 @@ public enum SlideResults {
             self.id = id
             self.name = name
             self.icon = icon
+        }
+    }
+
+    public struct ProjectCreateResult: Codable, Sendable {
+        public let id: String
+        public let name: String
+        public let icon: String
+        public let success: Bool
+
+        public init(id: String, name: String, icon: String, success: Bool = true) {
+            self.id = id
+            self.name = name
+            self.icon = icon
+            self.success = success
         }
     }
 }

@@ -102,6 +102,10 @@ struct SlideApp: App {
                     projects: state.browser.projects,
                     activeProjectId: state.browser.activeProjectId
                 )
+            },
+            createProjectHandler: { name, icon, colorHex in
+                guard let obx = ObjectBoxDatabase.shared else { throw SlideDBError.notInitialized }
+                return try obx.createProject(name: name, icon: icon, colorHex: colorHex)
             }
         )
 
@@ -153,8 +157,20 @@ struct SlideMenuCommands: Commands {
     var body: some Commands {
         // Override File menu items
         CommandGroup(replacing: .newItem) {
-            Button("New Note") { store.send(.createNewNote) }
-                .keyboardShortcut("N", modifiers: .command)
+            Button("New Project") {
+                #if DEBUG
+                print("[KeyboardShortcut] Menu command handled Cmd-N -> new project")
+                #endif
+                NotificationCenter.default.post(name: Notification.Name("ShowCreateProject"), object: nil)
+            }
+            .keyboardShortcut("n", modifiers: .command)
+
+            Button("New Note") {
+                #if DEBUG
+                print("[KeyboardShortcut] Menu command handled New Note")
+                #endif
+                store.send(.createNewNote)
+            }
         }
 
         // Override close behavior in File menu

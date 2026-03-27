@@ -229,6 +229,7 @@ struct ProjectGroup: ParsableCommand {
         subcommands: [
             List.self,
             Select.self,
+            Create.self,
         ]
     )
 
@@ -248,6 +249,24 @@ struct ProjectGroup: ParsableCommand {
 
         func run() throws {
             print(try callMethod(.projectSelect, params: SlideParams.ProjectSelect(id: id)))
+        }
+    }
+
+    struct Create: ParsableCommand {
+        static let configuration = CommandConfiguration(abstract: "Create a new project")
+
+        @Option(help: "Project name")
+        var name: String
+
+        @Option(help: "Project icon (emoji)")
+        var icon: String = "📁"
+
+        @Option(help: "Project color (hex, e.g. #6B7280)")
+        var color: String = "#6B7280"
+
+        func run() throws {
+            let params = SlideParams.ProjectCreate(name: name, icon: icon, color: color)
+            print(try callMethod(.projectCreate, params: params))
         }
     }
 }

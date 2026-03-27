@@ -102,6 +102,7 @@ public enum CLIInstaller {
         ### Projects
         - `slide project list` — list all projects
         - `slide project select <id>` — switch to a project
+        - `slide project create --name "..." [--icon "📁"] [--color "#6B7280"]` — create a new project
 
         ### Status
         - `slide status` — check if Slide is running

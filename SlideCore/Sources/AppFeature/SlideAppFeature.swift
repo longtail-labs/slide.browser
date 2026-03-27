@@ -396,6 +396,9 @@ public struct SlideAppFeature {
             }
 
         case .createNewNote:
+            #if DEBUG
+            print("[KeyboardShortcut] Reducer received createNewNote")
+            #endif
             return .send(.browser(.addNoteObject("Untitled Note", "")))
 
         case .createNewTerminal:
@@ -748,6 +751,9 @@ public struct SlideAppFeature {
                 }
 
             // Create
+            case "create.project":
+                NotificationCenter.default.post(name: Notification.Name("ShowCreateProject"), object: nil)
+                return .none
             case "create.note":
                 return .send(.createNewNote)
             case "create.terminal":
