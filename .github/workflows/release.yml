@@ -107,17 +107,16 @@ jobs:
           echo "Build successful"
           ls -la "$APP_PATH/Contents/"
 
-      - name: Stage build for Conveyor
+      - name: Package app for transfer
         run: |
           APP_PATH="Slide/Slide/build/Build/Products/Release/Slide.app"
-          mkdir -p build/Build/Products/Release
-          cp -R "$APP_PATH" build/Build/Products/Release/
+          tar czf Slide.app.tar.gz -C "$(dirname "$APP_PATH")" Slide.app
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: slide-unsigned-app
-          path: build/Build/Products/Release/Slide.app
+          path: Slide.app.tar.gz
           if-no-files-found: error
 
   sign-and-release:
@@ -136,7 +135,15 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: slide-unsigned-app
-          path: build/Build/Products/Release/Slide.app
+
+      - name: Extract app bundle
+        run: |
+          mkdir -p build/Build/Products/Release
+          tar xzf Slide.app.tar.gz -C build/Build/Products/Release/
+
+      - name: Decode Apple certificate
+        run: |
+          echo "${{ secrets.APPLE_CERTIFICATE_BASE64 }}" | base64 -d > developerID_application.cer
 
       - name: Extract version
         id: version
