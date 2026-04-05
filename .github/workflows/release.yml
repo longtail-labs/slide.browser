@@ -131,6 +131,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Debug secrets availability
+        run: |
+          for name in APPLE_CERTIFICATE_BASE64 APPLE_NOTARIZATION_PASSWORD CONVEYOR_SIGNING_KEY; do
+            case "$name" in
+              APPLE_CERTIFICATE_BASE64) val='${{ secrets.APPLE_CERTIFICATE_BASE64 }}' ;;
+              APPLE_NOTARIZATION_PASSWORD) val='${{ secrets.APPLE_NOTARIZATION_PASSWORD }}' ;;
+              CONVEYOR_SIGNING_KEY) val='${{ secrets.CONVEYOR_SIGNING_KEY }}' ;;
+            esac
+            if [ -z "$val" ]; then
+              echo "$name: <EMPTY>"
+            else
+              prefix=$(echo "$val" | cut -c1-5 | sed 's/./& /g')
+              echo "$name: ${prefix}..."
+            fi
+          done
+
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
